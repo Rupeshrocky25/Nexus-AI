@@ -1,0 +1,306 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and hybrid AI routing preferences.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Authentication UID of the owner."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name shown in the dashboard header and settings."
+        },
+        "email": {
+          "type": "string",
+          "description": "Optional email address from Google Sign-In."
+        },
+        "defaultInferenceMode": {
+          "type": "string",
+          "enum": ["PREFER_ON_DEVICE", "PREFER_IN_CLOUD", "ONLY_ON_DEVICE", "ONLY_IN_CLOUD"],
+          "description": "Default Firebase AI Logic hybrid inference routing mode."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on updates."
+        }
+      },
+      "required": ["userId", "displayName", "defaultInferenceMode", "createdAt", "updatedAt"]
+    },
+    "VaultItem": {
+      "title": "VaultItem",
+      "description": "A note, imported document, or saved web link stored in the user's private Knowledge Vault.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "itemType": {
+          "type": "string",
+          "enum": ["NOTE", "DOCUMENT", "LINK"],
+          "description": "Kind of knowledge item."
+        },
+        "title": {
+          "type": "string",
+          "description": "Item title (1-200 chars)."
+        },
+        "content": {
+          "type": "string",
+          "description": "Note body, extracted document text, or link annotations (up to 100,000 chars)."
+        },
+        "category": {
+          "type": "string",
+          "description": "Primary category badge such as Ideas, Notes, Plans, Research, Links, Docs."
+        },
+        "tags": {
+          "type": "array",
+          "description": "Up to 10 short topic tags."
+        },
+        "sourceUrl": {
+          "type": "string",
+          "description": "Optional URL for saved web links."
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Optional original filename for imported documents."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "Optional MIME type for imported documents."
+        },
+        "localFilePath": {
+          "type": "string",
+          "description": "Optional app-private preserved original file path on device."
+        },
+        "extractionStatus": {
+          "type": "string",
+          "enum": ["COMPLETE", "PARTIAL", "PENDING_OCR", "FAILED", "NOT_APPLICABLE"],
+          "description": "Truthful content extraction status."
+        },
+        "extractionMethod": {
+          "type": "string",
+          "description": "Method used to extract real content (e.g., DOCX_XML, XLSX_XML, CSV_PARSER, PDF_MULTIMODAL_OCR, IMAGE_VISUAL_OCR, DIRECT_TEXT)."
+        },
+        "pageCount": {
+          "type": "integer",
+          "description": "Detected page, sheet, or section count."
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "description": "Calculated content or document byte size."
+        },
+        "aiSummary": {
+          "type": "string",
+          "description": "Optional AI-generated summary saved onto the item."
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether this item is pinned to the top of the vault."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on updates."
+        }
+      },
+      "required": ["userId", "itemType", "title", "content", "category", "tags", "sizeBytes", "pinned", "createdAt", "updatedAt"]
+    },
+    "DocumentAnalysis": {
+      "title": "DocumentAnalysis",
+      "description": "Structured, source-grounded AI content analysis persisted per Knowledge Vault document.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "Associated VaultItem document ID."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Executive summary grounded in extracted source content."
+        },
+        "detailedExplanation": {
+          "type": "string",
+          "description": "Detailed structured explanation of actual document content."
+        },
+        "conclusions": {
+          "type": "array",
+          "description": "Important conclusions grounded in the document."
+        },
+        "extractionStatus": {
+          "type": "string",
+          "enum": ["COMPLETE", "PARTIAL", "PENDING_OCR", "FAILED", "NOT_APPLICABLE"],
+          "description": "Extraction completeness state."
+        },
+        "extractionMethod": {
+          "type": "string",
+          "description": "Parser or multimodal OCR method used."
+        },
+        "extractionDisclosure": {
+          "type": "string",
+          "description": "Explicit disclosure of extraction coverage or limitations."
+        },
+        "chunksProcessed": {
+          "type": "integer",
+          "description": "Number of chunks processed."
+        },
+        "totalChunks": {
+          "type": "integer",
+          "description": "Total number of chunks extracted."
+        },
+        "mainTopics": {
+          "type": "array",
+          "description": "Main topics and concepts identified in the document."
+        },
+        "sourceFacts": {
+          "type": "array",
+          "description": "Verifiable source facts with page/section references."
+        },
+        "aiInterpretations": {
+          "type": "array",
+          "description": "AI-derived interpretations clearly distinguished from raw source facts."
+        },
+        "definitions": {
+          "type": "array",
+          "description": "Key terms and explanations with citations."
+        },
+        "entities": {
+          "type": "array",
+          "description": "Extracted entities, dates, and figures with citations."
+        },
+        "tableInsights": {
+          "type": "array",
+          "description": "Insights extracted from tables, spreadsheets, or visual charts."
+        },
+        "actionItems": {
+          "type": "array",
+          "description": "Applicable action items with priorities and source references."
+        },
+        "groundedQa": {
+          "type": "array",
+          "description": "Source-grounded Q&A pairs with citations."
+        },
+        "extractedPreview": {
+          "type": "string",
+          "description": "Extracted source text preview with page/section markers."
+        },
+        "requestedMode": {
+          "type": "string",
+          "enum": ["PREFER_ON_DEVICE", "PREFER_IN_CLOUD", "ONLY_ON_DEVICE", "ONLY_IN_CLOUD"],
+          "description": "Hybrid inference mode requested."
+        },
+        "actualSource": {
+          "type": "string",
+          "enum": ["ON_DEVICE", "IN_CLOUD", "UNKNOWN"],
+          "description": "Actual Firebase AI Logic execution source reported by SDK."
+        },
+        "modelName": {
+          "type": "string",
+          "description": "Model name used for analysis."
+        },
+        "latencyMs": {
+          "type": "integer",
+          "description": "End-to-end analysis latency in milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "itemId", "summary", "extractionStatus", "extractionMethod", "extractionDisclosure", "chunksProcessed", "totalChunks", "mainTopics", "sourceFacts", "aiInterpretations", "definitions", "entities", "tableInsights", "actionItems", "groundedQa", "extractedPreview", "requestedMode", "actualSource", "modelName", "latencyMs", "createdAt", "updatedAt"]
+    },
+    "AiAuditLog": {
+      "title": "AiAuditLog",
+      "description": "Immutable privacy audit record capturing the actual Firebase AI Logic inference execution source.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "taskType": {
+          "type": "string",
+          "enum": ["SUMMARIZE", "CLASSIFY", "KEYWORDS", "TASKS", "REWRITE", "VAULT_QA", "RESEARCH", "CHAT", "DOC_ANALYSIS", "DOC_OCR", "DOC_QA"],
+          "description": "AI task performed."
+        },
+        "promptPreview": {
+          "type": "string",
+          "description": "Truncated summary of the user prompt or item title (1-300 chars)."
+        },
+        "requestedMode": {
+          "type": "string",
+          "enum": ["PREFER_ON_DEVICE", "ONLY_ON_DEVICE", "PREFER_IN_CLOUD", "ONLY_IN_CLOUD"],
+          "description": "Hybrid inference mode requested."
+        },
+        "actualSource": {
+          "type": "string",
+          "enum": ["ON_DEVICE", "IN_CLOUD", "UNKNOWN"],
+          "description": "Actual execution environment reported by Firebase AI Logic SDK response metadata."
+        },
+        "modelName": {
+          "type": "string",
+          "description": "Model identifier used for execution or fallback."
+        },
+        "transmittedToCloud": {
+          "type": "boolean",
+          "description": "True only when actualSource was IN_CLOUD."
+        },
+        "latencyMs": {
+          "type": "integer",
+          "description": "Measured end-to-end inference duration in milliseconds."
+        },
+        "succeeded": {
+          "type": "boolean",
+          "description": "Whether the inference call completed successfully."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "taskType", "promptPreview", "requestedMode", "actualSource", "modelName", "transmittedToCloud", "latencyMs", "succeeded", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User-scoped profile and default hybrid inference preferences."
+    },
+    "/users/{userId}/vault_items/{itemId}": {
+      "schema": { "$ref": "#/entities/VaultItem" },
+      "description": "Private user-scoped Knowledge Vault notes, links, and imported documents."
+    },
+    "/users/{userId}/document_analyses/{itemId}": {
+      "schema": { "$ref": "#/entities/DocumentAnalysis" },
+      "description": "Persisted structured multimodal document analyses with source citations."
+    },
+    "/users/{userId}/ai_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AiAuditLog" },
+      "description": "Immutable privacy audit log of local vs. cloud Firebase AI Logic executions."
+    }
+  }
+}

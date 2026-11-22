@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Nexus AI faceted 4-point star emblem inside the 66dp safe zone (21..87) -->
+    <path android:pathData="M54,24 L62,46 L84,54 L62,62 L54,84 L46,62 L24,54 L46,46 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="24"
+                android:startY="24"
+                android:endX="84"
+                android:endY="84"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#A78BFA" />
+                <item android:offset="0.5" android:color="#7C5CFF" />
+                <item android:offset="1.0" android:color="#22D3EE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Upper-left crystalline highlight facet -->
+    <path
+        android:pathData="M54,24 L62,46 L54,54 L46,46 Z"
+        android:fillColor="#55FFFFFF" />
+    <!-- Lower-right cyan energy facet -->
+    <path
+        android:pathData="M84,54 L62,62 L54,54 L62,46 Z"
+        android:fillColor="#7722D3EE" />
+    <!-- Center core diamond -->
+    <path
+        android:pathData="M54,47 L61,54 L54,61 L47,54 Z"
+        android:fillColor="#F8FAFC" />
+</vector>

@@ -1,0 +1,268 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny all paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidInferenceMode(mode) {
+      return mode in ['PREFER_ON_DEVICE', 'PREFER_IN_CLOUD', 'ONLY_ON_DEVICE', 'ONLY_IN_CLOUD'];
+    }
+
+    function isValidExtractionStatus(status) {
+      return status in ['COMPLETE', 'PARTIAL', 'PENDING_OCR', 'FAILED', 'NOT_APPLICABLE'];
+    }
+
+    // Entity validators (Pillar 2: Validation Blueprints)
+    function isValidUserProfile(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.displayName is string &&
+             data.displayName.size() >= 1 &&
+             data.displayName.size() <= 100 &&
+             (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 254)) &&
+             isValidInferenceMode(data.defaultInferenceMode) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidVaultItem(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.itemType in ['NOTE', 'DOCUMENT', 'LINK'] &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 200 &&
+             data.content is string &&
+             data.content.size() <= 100000 &&
+             data.category is string &&
+             data.category.size() >= 1 &&
+             data.category.size() <= 40 &&
+             data.tags is list &&
+             data.tags.size() <= 10 &&
+             (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 40)) &&
+             (!('sourceUrl' in data) || data.sourceUrl == null || (data.sourceUrl is string && data.sourceUrl.size() <= 2048)) &&
+             (!('fileName' in data) || data.fileName == null || (data.fileName is string && data.fileName.size() <= 255)) &&
+             (!('mimeType' in data) || data.mimeType == null || (data.mimeType is string && data.mimeType.size() <= 120)) &&
+             (!('localFilePath' in data) || data.localFilePath == null || (data.localFilePath is string && data.localFilePath.size() <= 512)) &&
+             (!('extractionStatus' in data) || data.extractionStatus == null || isValidExtractionStatus(data.extractionStatus)) &&
+             (!('extractionMethod' in data) || data.extractionMethod == null || (data.extractionMethod is string && data.extractionMethod.size() <= 80)) &&
+             (!('pageCount' in data) || data.pageCount == null || (data.pageCount is int && data.pageCount >= 0 && data.pageCount <= 50000)) &&
+             data.sizeBytes is int &&
+             data.sizeBytes >= 0 &&
+             data.sizeBytes <= 104857600 &&
+             (!('aiSummary' in data) || data.aiSummary == null || (data.aiSummary is string && data.aiSummary.size() <= 4000)) &&
+             data.pinned is bool &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidDocumentAnalysis(data, expectedItemId) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.itemId is string &&
+             data.itemId == expectedItemId &&
+             isValidId(data.itemId) &&
+             data.summary is string &&
+             data.summary.size() >= 1 &&
+             data.summary.size() <= 8000 &&
+             (!('detailedExplanation' in data) || (data.detailedExplanation is string && data.detailedExplanation.size() <= 16000)) &&
+             (!('conclusions' in data) || (data.conclusions is list && data.conclusions.size() <= 25 && (data.conclusions.size() == 0 || data.conclusions[0] is string))) &&
+             isValidExtractionStatus(data.extractionStatus) &&
+             data.extractionMethod is string &&
+             data.extractionMethod.size() >= 1 &&
+             data.extractionMethod.size() <= 80 &&
+             data.extractionDisclosure is string &&
+             data.extractionDisclosure.size() <= 1000 &&
+             data.chunksProcessed is int &&
+             data.chunksProcessed >= 0 &&
+             data.chunksProcessed <= 1000 &&
+             data.totalChunks is int &&
+             data.totalChunks >= 0 &&
+             data.totalChunks <= 1000 &&
+             data.mainTopics is list &&
+             data.mainTopics.size() <= 30 &&
+             (data.mainTopics.size() == 0 || data.mainTopics[0] is string) &&
+             data.sourceFacts is list &&
+             data.sourceFacts.size() <= 50 &&
+             (data.sourceFacts.size() == 0 || data.sourceFacts[0] is map) &&
+             data.aiInterpretations is list &&
+             data.aiInterpretations.size() <= 30 &&
+             (data.aiInterpretations.size() == 0 || data.aiInterpretations[0] is string) &&
+             data.definitions is list &&
+             data.definitions.size() <= 30 &&
+             (data.definitions.size() == 0 || data.definitions[0] is map) &&
+             data.entities is list &&
+             data.entities.size() <= 50 &&
+             (data.entities.size() == 0 || data.entities[0] is map) &&
+             data.tableInsights is list &&
+             data.tableInsights.size() <= 30 &&
+             (data.tableInsights.size() == 0 || data.tableInsights[0] is map) &&
+             data.actionItems is list &&
+             data.actionItems.size() <= 30 &&
+             (data.actionItems.size() == 0 || data.actionItems[0] is map) &&
+             data.groundedQa is list &&
+             data.groundedQa.size() <= 25 &&
+             (data.groundedQa.size() == 0 || data.groundedQa[0] is map) &&
+             data.extractedPreview is string &&
+             data.extractedPreview.size() <= 100000 &&
+             isValidInferenceMode(data.requestedMode) &&
+             data.actualSource in ['ON_DEVICE', 'IN_CLOUD', 'UNKNOWN'] &&
+             data.modelName is string &&
+             data.modelName.size() >= 1 &&
+             data.modelName.size() <= 80 &&
+             data.latencyMs is int &&
+             data.latencyMs >= 0 &&
+             data.latencyMs <= 600000 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidAiLog(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.taskType in ['SUMMARIZE', 'CLASSIFY', 'KEYWORDS', 'TASKS', 'REWRITE', 'VAULT_QA', 'RESEARCH', 'CHAT', 'DOC_ANALYSIS', 'DOC_OCR', 'DOC_QA'] &&
+             data.promptPreview is string &&
+             data.promptPreview.size() >= 1 &&
+             data.promptPreview.size() <= 300 &&
+             isValidInferenceMode(data.requestedMode) &&
+             data.actualSource in ['ON_DEVICE', 'IN_CLOUD', 'UNKNOWN'] &&
+             data.modelName is string &&
+             data.modelName.size() >= 1 &&
+             data.modelName.size() <= 80 &&
+             data.transmittedToCloud is bool &&
+             data.latencyMs is int &&
+             data.latencyMs >= 0 &&
+             data.latencyMs <= 600000 &&
+             data.succeeded is bool &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time;
+    }
+
+    // User profile & settings
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'defaultInferenceMode', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'defaultInferenceMode', 'createdAt', 'updatedAt']);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'defaultInferenceMode', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Private Knowledge Vault items (notes, documents, saved links)
+      match /vault_items/{itemId} {
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         isValidVaultItem(incoming()) &&
+                         incoming().keys().hasAll(['userId', 'itemType', 'title', 'content', 'category', 'tags', 'sizeBytes', 'pinned', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'itemType', 'title', 'content', 'category', 'tags', 'sourceUrl', 'fileName', 'mimeType', 'localFilePath', 'extractionStatus', 'extractionMethod', 'pageCount', 'sizeBytes', 'aiSummary', 'pinned', 'createdAt', 'updatedAt']);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         isValidVaultItem(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           // Action: Edit full item details
+                           incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'tags', 'sourceUrl', 'fileName', 'mimeType', 'localFilePath', 'extractionStatus', 'extractionMethod', 'pageCount', 'sizeBytes', 'aiSummary', 'pinned', 'updatedAt']) ||
+                           // Action: Attach extracted OCR content & provenance
+                           incoming().diff(existing()).affectedKeys().hasOnly(['content', 'extractionStatus', 'extractionMethod', 'pageCount', 'aiSummary', 'updatedAt']) ||
+                           // Action: Attach AI summary or classification
+                           incoming().diff(existing()).affectedKeys().hasOnly(['aiSummary', 'category', 'tags', 'updatedAt']) ||
+                           // Action: Toggle pinned state
+                           incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt'])
+                         );
+
+        allow delete: if isOwner(userId) && isValidId(itemId);
+      }
+
+      // Structured source-grounded document analyses
+      match /document_analyses/{itemId} {
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         isValidDocumentAnalysis(incoming(), itemId) &&
+                         incoming().keys().hasAll(['userId', 'itemId', 'summary', 'extractionStatus', 'extractionMethod', 'extractionDisclosure', 'chunksProcessed', 'totalChunks', 'mainTopics', 'sourceFacts', 'aiInterpretations', 'definitions', 'entities', 'tableInsights', 'actionItems', 'groundedQa', 'extractedPreview', 'requestedMode', 'actualSource', 'modelName', 'latencyMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'itemId', 'summary', 'detailedExplanation', 'conclusions', 'extractionStatus', 'extractionMethod', 'extractionDisclosure', 'chunksProcessed', 'totalChunks', 'mainTopics', 'sourceFacts', 'aiInterpretations', 'definitions', 'entities', 'tableInsights', 'actionItems', 'groundedQa', 'extractedPreview', 'requestedMode', 'actualSource', 'modelName', 'latencyMs', 'createdAt', 'updatedAt']);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(itemId) &&
+                         isValidDocumentAnalysis(incoming(), itemId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().itemId == existing().itemId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['summary', 'detailedExplanation', 'conclusions', 'extractionStatus', 'extractionMethod', 'extractionDisclosure', 'chunksProcessed', 'totalChunks', 'mainTopics', 'sourceFacts', 'aiInterpretations', 'definitions', 'entities', 'tableInsights', 'actionItems', 'groundedQa', 'extractedPreview', 'requestedMode', 'actualSource', 'modelName', 'latencyMs', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(itemId);
+      }
+
+      // Immutable AI inference privacy audit logs
+      match /ai_logs/{logId} {
+        allow get: if isOwner(userId) && isValidId(logId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         isValidAiLog(incoming()) &&
+                         incoming().keys().hasAll(['userId', 'taskType', 'promptPreview', 'requestedMode', 'actualSource', 'modelName', 'transmittedToCloud', 'latencyMs', 'succeeded', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'taskType', 'promptPreview', 'requestedMode', 'actualSource', 'modelName', 'transmittedToCloud', 'latencyMs', 'succeeded', 'createdAt']);
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+    }
+  }
+}
